@@ -1,26 +1,58 @@
 # InfraBIOS
 
-**BIOS Configuration Management System**
+**BIOS Configuration Management System — Endpoints & Servers**
 
-A production-grade platform that centrally manages, audits, validates, and automates BIOS/UEFI settings across thousands of physical servers — replacing manual SSH firewall-style management with a programmable REST API backed by a full audit trail.
+A centralized platform for discovering, auditing, configuring, and enforcing BIOS/UEFI settings across enterprise PCs, laptops, workstations, and servers.
+
+The platform provides a single source of truth for firmware configuration, security settings, compliance policies, and hardware lifecycle management across your entire fleet — from a developer's laptop to a datacenter rack.
 
 > Think of it as **Git + Ansible + Fleet Management**, but specifically for BIOS and firmware configuration.
 
 ---
 
+## Why Endpoints + Servers
+
+A server-only BIOS manager is useful. A platform that covers **every piece of hardware in the organization** is transformative:
+
+| Device Class | Examples | Risk Without Management |
+|---|---|---|
+| Windows PCs | Dell OptiPlex, HP EliteDesk | Secure Boot disabled, TPM bypassed |
+| Linux PCs | Engineering workstations | Virtualization off, inconsistent boot mode |
+| Laptops | ThinkPad, Latitude, EliteBook | BitLocker breaks on BIOS change |
+| Servers | PowerEdge, ProLiant, ThinkSystem | Performance drift, compliance failure |
+
+One policy engine. One audit trail. One API. All hardware.
+
+---
+
 ## The Problem
 
-Large datacenters suffer from configuration drift across mixed vendor fleets:
+Configuration drift is silent and compounding:
 
-| Server | Secure Boot | VT-x | Hyperthreading |
+| Device | Secure Boot | TPM | Virtualization |
 |---|---|---|---|
-| lab-001 | ✅ Enabled | ✅ Enabled | ✅ Enabled |
-| lab-002 | ❌ Disabled | ✅ Enabled | ✅ Enabled |
-| lab-003 | ✅ Enabled | ❌ Disabled | ✅ Enabled |
+| pc-001 | ✅ | ✅ | ✅ |
+| pc-002 | ❌ | ✅ | ✅ |
+| lab-001 | ✅ | ❌ | ✅ |
+| lab-002 | ❌ | ❌ | ❌ |
 
 These inconsistencies cause performance degradation, security gaps, deployment failures, and compliance violations.
 
-InfraBIOS provides a **single source of truth** — define a profile once, enforce it everywhere.
+InfraBIOS provides a **single source of truth** — define a policy once, enforce it everywhere.
+
+---
+
+## Supported Devices
+
+### Endpoints
+- Windows PCs (Dell OptiPlex, HP EliteDesk, Lenovo ThinkCentre)
+- Linux PCs and engineering workstations
+- Laptops (ThinkPad, Latitude, EliteBook, MacBook via EFI)
+
+### Infrastructure
+- Physical servers (Dell PowerEdge, HPE ProLiant, Lenovo ThinkSystem, Supermicro)
+- Lab servers and bare-metal CI nodes
+- Datacenter servers at any scale
 
 ---
 
@@ -28,14 +60,14 @@ InfraBIOS provides a **single source of truth** — define a profile once, enfor
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                       Operators / CI                         │
-│              REST API  ·  curl  ·  Terraform  ·  Ansible     │
+│              Operators / IT / Security / CI                  │
+│         REST API  ·  curl  ·  Terraform  ·  Ansible          │
 └───────────────────────────┬──────────────────────────────────┘
                             │ Bearer token (HTTPS)
 ┌───────────────────────────▼──────────────────────────────────┐
 │                    InfraBIOS Server                          │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────────────┐  │
-│  │ /servers │ │/profiles │ │  /drift  │ │  /compliance   │  │
+│  │ /devices │ │/policies │ │  /drift  │ │  /compliance   │  │
 │  │/firmware │ │/changes  │ │/snapshots│ │    /jobs       │  │
 │  └────┬─────┘ └──────────┘ └──────────┘ └────────────────┘  │
 │       │                                                      │
@@ -48,30 +80,34 @@ InfraBIOS provides a **single source of truth** — define a profile once, enfor
 │  └───────────────────────────────────────────────────────┘   │
 └───────────────────────────────┬──────────────────────────────┘
                                 │ Agent token (HTTPS)
-         ┌──────────────────────┼──────────────────────┐
-         │                      │                      │
-┌────────▼───────┐   ┌──────────▼──────┐   ┌──────────▼──────┐
-│  infrabios-    │   │  infrabios-     │   │  infrabios-     │
-│  agent         │   │  agent          │   │  agent          │
-│  Dell R760     │   │  HPE DL380      │   │  Supermicro X13 │
-└────────────────┘   └─────────────────┘   └─────────────────┘
+     ┌──────────────────────────┼───────────────────────────┐
+     │                          │                           │
+┌────▼───────────┐   ┌──────────▼──────┐   ┌───────────────▼──┐
+│  infrabios-    │   │  infrabios-     │   │  infrabios-      │
+│  agent         │   │  agent          │   │  agent           │
+│  Dell OptiPlex │   │  HPE ProLiant   │   │  Lenovo ThinkPad │
+│  (Windows PC)  │   │  (Server)       │   │  (Laptop)        │
+└────────────────┘   └─────────────────┘   └──────────────────┘
 ```
 
 ---
 
-## Components
+## Core Features
 
-| Component | Description |
+| Feature | Description |
 |---|---|
-| **Hardware Discovery** | `dmidecode` + vendor CLI stubs (Dell `racadm`, HPE iLO, Lenovo OneCLI) |
-| **BIOS Inventory DB** | JSONB-stored settings per server, full history |
-| **Profile Management** | Reusable templates — Kubernetes, Security, Virtualization, AI |
-| **Compliance Engine** | Compare actual vs profile → score + violation report |
-| **Drift Detection** | Per-collection diff → emits drift events on any change |
-| **Firmware Lifecycle** | Track BIOS/BMC/NIC versions and approval status |
-| **Change Management** | Full approval workflow (pending → approved → applied) |
-| **Snapshots** | Point-in-time backup of settings + firmware |
-| **Job Queue** | Bulk operations across 10–10,000 servers |
+| **Hardware Discovery** | Auto-collect hostname, manufacturer, model, BIOS version via `dmidecode` + vendor CLIs |
+| **BIOS Inventory** | Store every setting as JSONB — full history per device |
+| **Policy Management** | Create security baselines (Corporate Security, CIS, NIST) and assign per device class |
+| **Compliance Engine** | Compare expected vs actual — scored reports with per-key violations |
+| **Drift Detection** | Per-collection diff — emits events the moment any setting changes |
+| **Configuration Deployment** | Push BIOS settings to thousands of devices via job queue |
+| **Firmware Lifecycle** | Track BIOS, TPM, BMC, NIC firmware versions and approval status |
+| **Security Monitoring** | Continuously audit Secure Boot, TPM, BIOS passwords, virtualization flags |
+| **Change Management** | Full approval workflow — request → review → apply → audit trail |
+| **Snapshots** | Point-in-time backup of full settings + firmware before any change |
+| **Audit Logging** | Every change records who, what, when, and why |
+| **Bulk Fleet Operations** | Apply policies to 10, 100, or 10,000 devices in one job |
 
 ---
 
@@ -201,6 +237,51 @@ jobs                — bulk fleet operation tracking
 | Supermicro | `dmidecode` + IPMI stub | IPMI raw |
 
 Vendor stubs are in [internal/agent/collector.go](internal/agent/collector.go).
+
+---
+
+## Roadmap
+
+### Phase 1 — Foundation (current)
+- [x] Hardware discovery via `dmidecode`
+- [x] BIOS inventory collection and storage
+- [x] REST API with Bearer token auth
+- [x] Compliance reporting
+- [x] Drift detection
+
+### Phase 2 — Policy Engine
+- [ ] Policy templates (CIS Benchmark, NIST, corporate baseline)
+- [ ] Per-device-class policy assignment (PC vs server vs laptop)
+- [ ] Scheduled compliance scans
+- [ ] Email / webhook alerts on drift
+
+### Phase 3 — Remote Configuration
+- [ ] Remote BIOS setting changes via vendor CLI (Dell `racadm`, HPE iLO, Lenovo OneCLI)
+- [ ] Firmware update orchestration
+- [ ] Bulk operations with rollback on failure
+- [ ] Pre/post-change snapshot automation
+
+### Phase 4 — Endpoint Management
+- [ ] Windows PC agent (WMI + PowerShell BIOS bridge)
+- [ ] Laptop fleet support (battery policy, lid/power settings)
+- [ ] Hardware lifecycle tracking (age, warranty, EOL)
+- [ ] Security automation (auto-enforce Secure Boot, TPM enrollment)
+
+### Phase 5 — Intelligence
+- [ ] AI recommendation engine (workload-aware BIOS tuning)
+- [ ] Predictive compliance (flag devices likely to drift)
+- [ ] Anomaly detection (unexpected BIOS changes)
+- [ ] Autonomous remediation with approval bypass for critical security settings
+
+---
+
+## Project Name Alternatives
+
+**Enterprise:**
+FirmwareOps · FleetConfig · FirmwareFleet · Hardware Control Plane · Firmware Governance Platform · Platform Firmware Manager
+
+**Open-source:**
+`firmwarectl` · `fleetctl` · `hwconfig` · `biosctl` · `firmwared` · `fwfleet`
 
 ---
 
