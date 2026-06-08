@@ -11,20 +11,22 @@ const agentVersion = "1.0.0"
 
 // Worker runs the agent polling loop.
 type Worker struct {
-	client   *Client
-	serverID string
-	vendor   string
-	interval time.Duration
-	log      *zap.Logger
+	client     *Client
+	serverID   string
+	vendor     string
+	deviceType string
+	interval   time.Duration
+	log        *zap.Logger
 }
 
-func NewWorker(client *Client, serverID, vendor string, interval time.Duration, log *zap.Logger) *Worker {
+func NewWorker(client *Client, serverID, vendor, deviceType string, interval time.Duration, log *zap.Logger) *Worker {
 	return &Worker{
-		client:   client,
-		serverID: serverID,
-		vendor:   vendor,
-		interval: interval,
-		log:      log,
+		client:     client,
+		serverID:   serverID,
+		vendor:     vendor,
+		deviceType: deviceType,
+		interval:   interval,
+		log:        log,
 	}
 }
 
@@ -49,7 +51,7 @@ func (w *Worker) Run(stop <-chan struct{}) {
 }
 
 func (w *Worker) collect() {
-	settings, err := CollectBIOSSettings(w.vendor)
+	settings, err := CollectBIOSSettings(w.vendor, w.deviceType)
 	if err != nil {
 		w.log.Error("collect BIOS settings", zap.Error(err))
 		return

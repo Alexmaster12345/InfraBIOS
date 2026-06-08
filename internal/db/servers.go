@@ -11,33 +11,33 @@ import (
 
 func (d *DB) CreateServer(ctx context.Context, id string, req *models.CreateServerRequest) (*models.Server, error) {
 	const q = `
-		INSERT INTO servers (id, hostname, ip_address, vendor, model, serial_number, bios_version, bmc_version)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+		INSERT INTO servers (id, hostname, ip_address, vendor, model, serial_number, bios_version, bmc_version, device_type, os)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 		RETURNING id, hostname, ip_address, vendor, model, serial_number, bios_version, bmc_version,
-		          profile_id, status, last_seen, created_at, updated_at`
+		          device_type, os, profile_id, status, last_seen, created_at, updated_at`
 	row := d.pool.QueryRow(ctx, q,
 		id, req.Hostname, req.IPAddress, req.Vendor, req.Model,
-		req.SerialNumber, req.BIOSVersion, req.BMCVersion)
+		req.SerialNumber, req.BIOSVersion, req.BMCVersion, req.DeviceType, req.OS)
 	return scanServer(row)
 }
 
 func (d *DB) GetServer(ctx context.Context, id string) (*models.Server, error) {
 	const q = `SELECT id, hostname, ip_address, vendor, model, serial_number, bios_version, bmc_version,
-	                  profile_id, status, last_seen, created_at, updated_at
+	                  device_type, os, profile_id, status, last_seen, created_at, updated_at
 	           FROM servers WHERE id = $1`
 	return scanServer(d.pool.QueryRow(ctx, q, id))
 }
 
 func (d *DB) GetServerByHostname(ctx context.Context, hostname string) (*models.Server, error) {
 	const q = `SELECT id, hostname, ip_address, vendor, model, serial_number, bios_version, bmc_version,
-	                  profile_id, status, last_seen, created_at, updated_at
+	                  device_type, os, profile_id, status, last_seen, created_at, updated_at
 	           FROM servers WHERE hostname = $1`
 	return scanServer(d.pool.QueryRow(ctx, q, hostname))
 }
 
 func (d *DB) ListServers(ctx context.Context) ([]*models.Server, error) {
 	const q = `SELECT id, hostname, ip_address, vendor, model, serial_number, bios_version, bmc_version,
-	                  profile_id, status, last_seen, created_at, updated_at
+	                  device_type, os, profile_id, status, last_seen, created_at, updated_at
 	           FROM servers ORDER BY hostname`
 	rows, err := d.pool.Query(ctx, q)
 	if err != nil {
@@ -132,6 +132,7 @@ func scanServer(row scanner) (*models.Server, error) {
 	err := row.Scan(
 		&s.ID, &s.Hostname, &s.IPAddress, &s.Vendor, &s.Model,
 		&s.SerialNumber, &s.BIOSVersion, &s.BMCVersion,
+		&s.DeviceType, &s.OS,
 		&s.ProfileID, &s.Status, &lastSeen, &s.CreatedAt, &s.UpdatedAt,
 	)
 	if err == pgx.ErrNoRows {

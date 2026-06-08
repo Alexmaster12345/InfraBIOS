@@ -6,11 +6,18 @@ import (
 )
 
 type ServerStatus string
+type DeviceType string
 
 const (
 	StatusActive      ServerStatus = "active"
 	StatusMaintenance ServerStatus = "maintenance"
 	StatusOffline     ServerStatus = "offline"
+
+	DeviceTypeServer      DeviceType = "server"
+	DeviceTypeDesktop     DeviceType = "desktop"    // Windows/Linux PC (Dell OptiPlex, HP EliteDesk)
+	DeviceTypeWorkstation DeviceType = "workstation" // Engineering workstation (Linux)
+	DeviceTypeLaptop      DeviceType = "laptop"     // ThinkPad, Latitude, EliteBook
+	DeviceTypeUnknown     DeviceType = "unknown"
 )
 
 type Server struct {
@@ -22,6 +29,8 @@ type Server struct {
 	SerialNumber string       `json:"serial_number"`
 	BIOSVersion  string       `json:"bios_version"`
 	BMCVersion   string       `json:"bmc_version"`
+	DeviceType   DeviceType   `json:"device_type"`
+	OS           string       `json:"os"`
 	ProfileID    *string      `json:"profile_id,omitempty"`
 	Status       ServerStatus `json:"status"`
 	LastSeen     *time.Time   `json:"last_seen,omitempty"`
@@ -30,13 +39,15 @@ type Server struct {
 }
 
 type CreateServerRequest struct {
-	Hostname     string `json:"hostname"`
-	IPAddress    string `json:"ip_address"`
-	Vendor       string `json:"vendor"`
-	Model        string `json:"model"`
-	SerialNumber string `json:"serial_number"`
-	BIOSVersion  string `json:"bios_version"`
-	BMCVersion   string `json:"bmc_version"`
+	Hostname     string     `json:"hostname"`
+	IPAddress    string     `json:"ip_address"`
+	Vendor       string     `json:"vendor"`
+	Model        string     `json:"model"`
+	SerialNumber string     `json:"serial_number"`
+	BIOSVersion  string     `json:"bios_version"`
+	BMCVersion   string     `json:"bmc_version"`
+	DeviceType   DeviceType `json:"device_type"`
+	OS           string     `json:"os"`
 }
 
 type BIOSSettings struct {

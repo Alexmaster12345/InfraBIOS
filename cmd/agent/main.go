@@ -33,6 +33,8 @@ func main() {
 		zap.String("vendor", hw.Vendor),
 		zap.String("model", hw.Model),
 		zap.String("bios", hw.BIOSVersion),
+		zap.String("device_type", hw.DeviceType),
+		zap.String("os", hw.OS),
 	)
 
 	client := agent.NewClient(serverURL, agentToken, serverID)
@@ -43,7 +45,7 @@ func main() {
 		}
 	}
 
-	worker := agent.NewWorker(client, serverID, hw.Vendor, interval, log)
+	worker := agent.NewWorker(client, serverID, hw.Vendor, hw.DeviceType, interval, log)
 
 	stop := make(chan struct{})
 	go worker.Run(stop)

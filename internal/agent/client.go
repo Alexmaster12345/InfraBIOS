@@ -37,6 +37,8 @@ func (c *Client) Register(info HardwareInfo) error {
 		"serial_number": info.SerialNumber,
 		"bios_version":  info.BIOSVersion,
 		"bmc_version":   info.BMCVersion,
+		"device_type":   info.DeviceType,
+		"os":            info.OS,
 	})
 	resp, err := c.post("/api/v1/servers", body)
 	if err != nil {
